@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+  <Appenders>
+    <!-- console output -->
+    <Console name="Console" target="SYSTEM_OUT">
+      <PatternLayout pattern="%d %p %m%n" />
+    </Console>
+
+    <!-- default output -->
+    <RollingFile
+        name="RollingFile"
+        bufferedIO="true"
+        fileName="${sys:logPath:-logs}/application.log"
+        filePattern="${sys:logPath:-logs}/application.%i.log.gz">
+      <PatternLayout pattern="%d %p %m%n" />
+      <Policies>
+        <SizeBasedTriggeringPolicy size="100MB" />
+      </Policies>
+      <DefaultRolloverStrategy max="5" />
+    </RollingFile>
+
+    <!-- errors output -->
+    <RollingFile
+        name="RollingFileErrors"
+        bufferedIO="true"
+        fileName="${sys:logPath:-logs}/error.log"
+        filePattern="${sys:logPath:-logs}/error.%i.log.gz">
+      <PatternLayout pattern="%d %p %m%n" />
+      <Policies>
+        <SizeBasedTriggeringPolicy size="100MB" />
+      </Policies>
+      <DefaultRolloverStrategy max="5" />
+    </RollingFile>
+  </Appenders>
+
+  <Loggers>
+    <Root level="all" includeLocation="false">
+      <AppenderRef ref="RollingFile" level="DEBUG"/>
+      <AppenderRef ref="RollingFileErrors" level="ERROR"/>
+      <AppenderRef ref="Console" />
+    </Root>
+  </Loggers>
+</Configuration>
