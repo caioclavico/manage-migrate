@@ -1,8 +1,5 @@
 # manage-migrate
 
-Uma maneira facil de fazer migrações em clojure.
+Uma maneira facil de fazer migrações SQL em clojure.
 
-# proximos passos
-    - criação da verificação de arquivos com id repetidos.
-    - criação do executa-migracoes.
-    - implementar verificação do inicio das migrações.
+Ainda esta em desenvolvimento...
