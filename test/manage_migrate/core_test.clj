@@ -63,11 +63,10 @@
     (testing "[ERRO] - Falha ao criar migrações com arquivo repetido."
       (spit "test/diretorio_test/0002-migrate-repetido.sql" "arquivo repetido teste 0002")
       (is (= "arquivo repetido teste 0002" (slurp "test/diretorio_test/0002-migrate-repetido.sql")))
-      (is (thrown-with-msg? Exception #"Arquivo repetido!" (core/cria-migracao "test/" "diretorio_test")))
+      (is (thrown? Exception #"Arquivo repetido!" (core/cria-migracao "test/" "diretorio_test")))
       (is (not-empty (deref core/atom-migrates)))
       (is (= {:migrates {"0001" ["arquivo teste 0001;"]}}
-             (deref core/atom-migrates)))
-      (reset! core/atom-migrates {}))
+             (deref core/atom-migrates))))
 
     (testing "[OK] - Cria migrações após remover arquivo repetido."
       ;; removendo arquivo repetido
@@ -79,13 +78,64 @@
       (is (= {:migrates {"0001" ["arquivo teste 0001;"]
                          "0002" ["arquivo teste 0002;"]
                          "0003" ["arquivo teste 0003;"]}}
+             (deref core/atom-migrates))))
+
+    (testing "[OK] - verifica se os migrates inicia de onde parou."
+      ;; verifica se os migrates que ja foram rodados esta la!
+      (is (= {:migrates {"0001" ["arquivo teste 0001;"]
+                         "0002" ["arquivo teste 0002;"]
+                         "0003" ["arquivo teste 0003;"]}}
              (deref core/atom-migrates)))
-      (reset! core/atom-migrates {}))
+
+      ;; modifica um arquivo de migrate que ja foi rodado.
+      (spit "test/diretorio_test/0001-migrate.sql" "arquivo modificado!")
+      (is (= "arquivo modificado!" (slurp "test/diretorio_test/0001-migrate.sql")))
+
+      ;; cria um novo arquivo para rodar a criação dos migrates novamente.
+      (spit "test/diretorio_test/0004-migrate.sql" "arquivo teste 0004")
+      (is (= "arquivo teste 0004" (slurp "test/diretorio_test/0004-migrate.sql")))
+
+      ;; roda o cria-migracao!
+      (doall (core/cria-migracao "test/" "diretorio_test"))
+
+      ;; o arquivo modificado nao foi substituido conforme esperado.
+      (is (= {:migrates {"0001" ["arquivo teste 0001;"]
+                         "0002" ["arquivo teste 0002;"]
+                         "0003" ["arquivo teste 0003;"]
+                         "0004" ["arquivo teste 0004;"]}}
+             (deref core/atom-migrates))))
 
     (testing "[OK] - Verifica se os arquivos de teste foram excluidos."
       (let [migrate-dir (core/busca-diretorio "test/" "diretorio_test")]
         (.delete (io/file migrate-dir "0001-migrate.sql"))
         (.delete (io/file migrate-dir "0002-migrate.sql"))
         (.delete (io/file migrate-dir "0003-migrate.sql"))
+        (.delete (io/file migrate-dir "0004-migrate.sql"))
         (.delete (io/file migrate-dir))
-        (is (nil? (core/busca-diretorio "test/" "diretorio_test")))))))
+        (reset! core/atom-migrates {})
+        (is (nil? (core/busca-diretorio "test/" "diretorio_test")))
+        (is (= {} (deref core/atom-migrates)))))))
+
+(deftest verifica-novos-migrates-test
+  (testing "[OK] - Verifica se existe novos migrates para rodar."
+    (core/busca-ou-cria-diretorio "test/" "diretorio_test")
+    (let [migrate-dir (core/busca-diretorio "test/" "diretorio_test")]
+      (spit "test/diretorio_test/0001-migrate.sql" "arquivo teste 0001")
+      (is (thrown?
+           Exception
+           #"Novos migrates, rode o 'crie-migrate'!"
+           (core/verifica-novos-migrates migrate-dir)))
+
+      ;; roda o cria-migracao!
+      (doall (core/cria-migracao "test/" "diretorio_test"))
+
+      (is (= {:migrates {"0001" ["arquivo teste 0001;"]}}
+             (deref core/atom-migrates)))
+
+      (is (nil? (core/verifica-novos-migrates migrate-dir)))))
+
+  (testing "[OK] - Verifica se os arquivos de teste foram excluidos."
+      (let [migrate-dir (core/busca-diretorio "test/" "diretorio_test")]
+        (.delete (io/file migrate-dir "0001-migrate.sql"))
+        (.delete (io/file migrate-dir))
+        (is (nil? (core/busca-diretorio "test/" "diretorio_test"))))))

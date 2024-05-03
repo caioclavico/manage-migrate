@@ -4,7 +4,10 @@ All notable changes to this project will be documented in this file. This change
 ## [Unreleased]
 ### Added
 - criação do executa-migracoes.
-- iniciar as migrações do ponto onde parou.
+
+## 0.1.2 - 2024-05-02
+### Changed
+- `cria-migracoes` - agora iniciar as migrações do ponto onde parou.
 
 ## 0.1.1 - 2024-04-18
 ### Changed

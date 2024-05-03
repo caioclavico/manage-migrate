@@ -9,13 +9,16 @@
 
 (def atom-migrates (atom {}))
 
-(defn busca-diretorio [parent-dir dir]
-  (let [migration-dir (io/file parent-dir dir)]
-    (if (.exists migration-dir)
-      migration-dir
-      (let [implicit-migrate-dir (io/file dir)]
-        (when (.exists implicit-migrate-dir)
-          implicit-migrate-dir)))))
+(defn busca-diretorio
+  ([]
+   (busca-diretorio default-parent-dir default-dir))
+  ([parent-dir dir]
+   (let [migration-dir (io/file parent-dir dir)]
+     (if (.exists migration-dir)
+       migration-dir
+       (let [implicit-migrate-dir (io/file dir)]
+         (when (.exists implicit-migrate-dir)
+           implicit-migrate-dir))))))
 
 (defn busca-ou-cria-diretorio [parent-dir dir]
   (if-let [migration-dir (busca-diretorio parent-dir dir)]
@@ -30,6 +33,16 @@
         :when (util/parse-nome-arquivo nome-arquivo)]
     arquivo))
 
+(defn verifica-novos-migrates
+  ([]
+   (verifica-novos-migrates (busca-diretorio)))
+  ([migrate-dir]
+   (let [migrates (:migrates @atom-migrates)
+         arquivos-migrates (busca-arquivos migrate-dir)]
+     (when (not= (count migrates) (count arquivos-migrates))
+       (throw
+        (Exception. "Novos migrates, rode o 'crie-migrate!'"))))))
+
 (defn cria-migracao
   ([]
    (cria-migracao default-dir))
@@ -38,8 +51,9 @@
   ([parent-dir dir]
    (let [migrate-dir (busca-ou-cria-diretorio parent-dir dir)
          arquivos (sort (busca-arquivos migrate-dir))
-         n-arquivos (count arquivos)]
-     (loop [i 0]
+         n-arquivos (count arquivos)
+         n-inicio (count (:migrates @atom-migrates))]
+     (loop [i n-inicio]
        (if (< i n-arquivos)
          (let [arquivo (nth arquivos i)
                conteudo (into [] (util/parse-conteudo-arquivo (slurp arquivo)))
